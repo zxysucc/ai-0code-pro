@@ -8,8 +8,8 @@
         <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.example</groupId>
-    <artifactId>zxy-aicode-pro</artifactId>
+    <groupId>com.zxy</groupId>
+    <artifactId>aicode-pro</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>zxy-aicode-pro</name>
     <description>zxy-aicode-pro</description>
@@ -56,6 +56,19 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <version>4.4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
+
+
     </dependencies>
 
     <build>
