@@ -18,6 +18,8 @@ import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
 
+import static com.zxy.aicodepro.constant.UserConstant.USER_LOGIN;
+
 /**
  * 用户 服务层实现。
  *
@@ -53,9 +55,46 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+        ThrowUtils.throwIf(StrUtil.hasBlank(userAccount, userPassword), new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空"));
+        ThrowUtils.throwIf(userAccount.length() < 4, new BusinessException(ErrorCode.PARAMS_ERROR, "用户昵称过短"));
+        ThrowUtils.throwIf(userPassword.length() < 8, new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短"));
+        String password = getEncryptPassword(userPassword);
+        QueryWrapper queryWrapper = new QueryWrapper();
+        queryWrapper.eq("userAccount", userAccount)
+                .eq("userPassword", password);
+        User user = this.mapper.selectOneByQuery(queryWrapper);
+        //创建session
+        request.getSession().setAttribute(USER_LOGIN, user);
+        return getUserVO(user);
+    }
 
+    @Override
+    public LoginUserVO getUserLoginInfo(HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute(USER_LOGIN);
+        ThrowUtils.throwIf(user == null, new BusinessException(ErrorCode.NOT_LOGIN_ERROR));
+        User userInDb = this.mapper.selectOneById(user.getId());
+        ThrowUtils.throwIf(userInDb == null, new BusinessException(ErrorCode.NOT_LOGIN_ERROR));
+        if(user.getId().equals(userInDb.getId())) {
+            return getUserVO(userInDb);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean userLogout(HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute(USER_LOGIN);
+        ThrowUtils.throwIf(user == null, new BusinessException(ErrorCode.NOT_LOGIN_ERROR));
+        User userInDb = this.mapper.selectOneById(user.getId());
+        ThrowUtils.throwIf(userInDb == null, new BusinessException(ErrorCode.NOT_LOGIN_ERROR));
+        if(user.getId().equals(userInDb.getId())) {
+            request.getSession().removeAttribute(USER_LOGIN);
+            userInDb.setIsDelete(1);
+            this.mapper.update(userInDb);
+            return true;
+        }
         return false;
     }
+
 
     public String getEncryptPassword(String userPassword) {
         final String salt = "zxy";
