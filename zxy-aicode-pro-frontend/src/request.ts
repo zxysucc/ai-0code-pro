@@ -22,7 +22,8 @@ request.interceptors.response.use(
 
       if (!isLoginRequest && !isLoginPage) {
         void message.warning('请先登录')
-        const redirect = encodeURIComponent(window.location.href)
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        const redirect = encodeURIComponent(currentPath)
         window.location.href = `/user/login?redirect=${redirect}`
       }
     }
