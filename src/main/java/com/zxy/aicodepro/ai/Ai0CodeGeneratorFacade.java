@@ -38,26 +38,21 @@ public class Ai0CodeGeneratorFacade {
         }
     }
 
-    public void generatorAndSaveCodeStream(Ai0CodeGenTypeEnum type, String userMsg) {
-        switch (type) {
-            case HTML -> {
-//                Flux<String> stringFlux = aiAssistant.generateHtmlCodeStream(userMsg);
-//                String fullAnswer = getFullAnswer(stringFlux);
-//                HtmlCodeResult htmlCodeResult = CodeParser.parseHtmlCode(fullAnswer);
-//                Ai0CodeSaver.saveHtmlCode(htmlCodeResult);
-                Flux<String> stringFlux = aiAssistant.generateHtmlCodeStream(userMsg);
-                processCodeStream(stringFlux, Ai0CodeGenTypeEnum.HTML);
-            }
-            case MULTI_FILE -> {
-                Flux<String> stringFlux = aiAssistant.generateMultiFileCodeStream(userMsg);
-                processCodeStream(stringFlux, Ai0CodeGenTypeEnum.MULTI_FILE);
-            }
+    public Flux<String> generatorAndSaveCodeStream(Ai0CodeGenTypeEnum type, String userMsg) {
+        return switch (type) {
+            case HTML -> processCodeStream(
+                    aiAssistant.generateHtmlCodeStream(userMsg),
+                    Ai0CodeGenTypeEnum.HTML
+            );
+            case MULTI_FILE -> processCodeStream(
+                    aiAssistant.generateMultiFileCodeStream(userMsg),
+                    Ai0CodeGenTypeEnum.MULTI_FILE
+            );
             default -> {
                 log.error("Unknown code generation type: {}", type);
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "Unknown code generation type");
             }
-        }
-
+        };
     }
 
     /**
