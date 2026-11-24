@@ -25,6 +25,9 @@ public class AuthInterceptor {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
         HttpServletRequest request = attributes.getRequest();
         User user = (User) request.getSession().getAttribute(USER_LOGIN);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
         UserRoleEnum curUserRole = UserRoleEnum.Companion.getUserRoleEnum(user.getUserRole());
         UserRoleEnum mustRole = UserRoleEnum.Companion.getUserRoleEnum(authCheck.role());
         if(mustRole == null ) {

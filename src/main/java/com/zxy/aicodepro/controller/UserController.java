@@ -3,7 +3,6 @@ package com.zxy.aicodepro.controller;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.mybatisflex.core.paginate.Page;
-import com.mybatisflex.core.query.QueryWrapper;
 import com.zxy.aicodepro.annotation.AuthCheck;
 import com.zxy.aicodepro.common.BaseResponse;
 import com.zxy.aicodepro.common.ErrorCode;
@@ -143,24 +142,11 @@ public class UserController {
         ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long pageNum = userQueryRequest.getPageNum();
         long pageSize = userQueryRequest.getPageSize();
+        ThrowUtils.throwIf(pageNum <= 0 || pageSize <= 0 || pageSize > 20, ErrorCode.PARAMS_ERROR);
         Page<User> userPage = userService.page(Page.of(pageNum, pageSize),
-                getQueryWrapper(userQueryRequest));
-        // 数据脱敏
-        Page<UserVO> userVOPage = new Page<>(pageNum, pageSize, userPage.getTotalRow());
-        List<UserVO> userVOList = getUserVOList(userPage.getRecords());
-        userVOPage.setRecords(userVOList);
+                userService.getQueryWrapper(userQueryRequest));
+        Page<UserVO> userVOPage = userPage.map(userService::getUserVO);
         return ResultUtils.success(userVOPage);
-    }
-
-
-    public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
-        if (userQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
-        }
-
-        QueryWrapper queryWrapper = QueryWrapper.create();
-        queryWrapper.eq("id", userQueryRequest.getId());
-        return queryWrapper;
     }
 
     public String getEncryptPassword(String userPassword) {
