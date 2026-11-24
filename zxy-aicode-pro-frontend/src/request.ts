@@ -1,36 +1,48 @@
 import axios from 'axios'
 import { message } from 'ant-design-vue'
+import { API_BASE_URL } from '@/config/env'
 
-type BusinessResponse = {
-  code?: number
-}
-
-const request = axios.create({
-  baseURL: '/api',
-  timeout: 60_000,
+// 创建 Axios 实例
+const myAxios = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 60000,
   withCredentials: true,
 })
 
-request.interceptors.response.use(
-  (response) => {
-    const data = response.data as BusinessResponse | string | undefined
-
-    if (typeof data === 'object' && data?.code === 40100) {
-      const responseUrl = response.request?.responseURL ?? ''
-      const isLoginRequest = responseUrl.includes('user/get/login')
-      const isLoginPage = window.location.pathname.includes('/user/login')
-
-      if (!isLoginRequest && !isLoginPage) {
-        void message.warning('请先登录')
-        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
-        const redirect = encodeURIComponent(currentPath)
-        window.location.href = `/user/login?redirect=${redirect}`
-      }
-    }
-
-    return response
+// 全局请求拦截器
+myAxios.interceptors.request.use(
+  function (config) {
+    // Do something before request is sent
+    return config
   },
-  (error: unknown) => Promise.reject(error),
+  function (error) {
+    // Do something with request error
+    return Promise.reject(error)
+  },
 )
 
-export default request
+// 全局响应拦截器
+myAxios.interceptors.response.use(
+  function (response) {
+    const { data } = response
+    // 未登录
+    if (data.code === 40100) {
+      // 不是获取用户信息的请求，并且用户目前不是已经在用户登录页面，则跳转到登录页面
+      if (
+        !response.request.responseURL.includes('user/get/login') &&
+        !window.location.pathname.includes('/user/login')
+      ) {
+        message.warning('请先登录')
+        window.location.href = `/user/login?redirect=${window.location.href}`
+      }
+    }
+    return response
+  },
+  function (error) {
+    // Any status codes that falls outside the range of 2xx cause this function to trigger
+    // Do something with response error
+    return Promise.reject(error)
+  },
+)
+
+export default myAxios

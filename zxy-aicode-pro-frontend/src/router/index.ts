@@ -1,62 +1,57 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { message } from 'ant-design-vue'
 import HomePage from '@/pages/HomePage.vue'
-import { useLoginUserStore } from '@/stores/loginUser'
+import UserLoginPage from '@/pages/user/UserLoginPage.vue'
+import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
+import UserManagePage from '@/pages/admin/UserManagePage.vue'
+import AppManagePage from '@/pages/admin/AppManagePage.vue'
+import AppChatPage from '@/pages/app/AppChatPage.vue'
+import AppEditPage from '@/pages/app/AppEditPage.vue'
+import ChatManagePage from "@/pages/admin/ChatManagePage.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
+      name: '主页',
       component: HomePage,
     },
     {
       path: '/user/login',
-      name: 'userLogin',
-      component: () => import('@/pages/user/UserLoginPage.vue'),
+      name: '用户登录',
+      component: UserLoginPage,
     },
     {
       path: '/user/register',
-      name: 'userRegister',
-      component: () => import('@/pages/user/UserRegisterPage.vue'),
+      name: '用户注册',
+      component: UserRegisterPage,
     },
     {
       path: '/admin/userManage',
-      name: 'userManage',
-      component: () => import('@/pages/admin/UserManagePage.vue'),
-      meta: {
-        access: 'admin',
-      },
+      name: '用户管理',
+      component: UserManagePage,
     },
     {
-      path: '/admin/users',
-      redirect: '/admin/userManage',
+      path: '/admin/appManage',
+      name: '应用管理',
+      component: AppManagePage,
     },
     {
-      path: '/:pathMatch(.*)*',
-      redirect: '/',
+      path: '/admin/chatManage',
+      name: '对话管理',
+      component: ChatManagePage,
+    },
+    {
+      path: '/app/chat/:id',
+      name: '应用对话',
+      component: AppChatPage,
+    },
+    {
+      path: '/app/edit/:id',
+      name: '编辑应用',
+      component: AppEditPage,
     },
   ],
-})
-
-router.beforeEach(async (to) => {
-  const loginUserStore = useLoginUserStore()
-  await loginUserStore.ensureLoginUser()
-
-  if (to.meta.access === 'admin' && !loginUserStore.isLoggedIn) {
-    return {
-      path: '/user/login',
-      query: { redirect: to.fullPath },
-    }
-  }
-
-  if (to.meta.access === 'admin' && !loginUserStore.isAdmin) {
-    void message.error('没有管理员权限')
-    return '/'
-  }
-
-  return true
 })
 
 export default router

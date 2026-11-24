@@ -1,234 +1,160 @@
+<template>
+  <a-layout-header class="header">
+    <a-row :wrap="false">
+      <!-- 左侧：Logo和标题 -->
+      <a-col flex="200px">
+        <RouterLink to="/">
+          <div class="header-left">
+            <img class="logo" src="@/assets/logo.png" alt="Logo" />
+            <h1 class="site-title">鱼皮应用生成</h1>
+          </div>
+        </RouterLink>
+      </a-col>
+      <!-- 中间：导航菜单 -->
+      <a-col flex="auto">
+        <a-menu
+          v-model:selectedKeys="selectedKeys"
+          mode="horizontal"
+          :items="menuItems"
+          @click="handleMenuClick"
+        />
+      </a-col>
+      <!-- 右侧：用户操作区域 -->
+      <a-col>
+        <div class="user-login-status">
+          <div v-if="loginUserStore.loginUser.id">
+            <a-dropdown>
+              <a-space>
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                {{ loginUserStore.loginUser.userName ?? '无名' }}
+              </a-space>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="doLogout">
+                    <LogoutOutlined />
+                    退出登录
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
+          <div v-else>
+            <a-button type="primary" href="/user/login">登录</a-button>
+          </div>
+        </div>
+      </a-col>
+    </a-row>
+  </a-layout-header>
+</template>
+
 <script setup lang="ts">
-import { computed, h } from 'vue'
-import { storeToRefs } from 'pinia'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { message, type MenuProps } from 'ant-design-vue'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { getRequestErrorMessage } from '@/utils/requestError'
+import { computed, h, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { type MenuProps, message } from 'ant-design-vue'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { userLogout } from '@/api/userController.ts'
+import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
 
-const route = useRoute()
-const router = useRouter()
 const loginUserStore = useLoginUserStore()
-const { isAdmin, isLoggedIn, loginUser } = storeToRefs(loginUserStore)
-
-const selectedKeys = computed(() => [route.path])
-
-const menuItems = computed(() => {
-  const items = [
-    {
-      key: '/',
-      label: '首页',
-      title: '首页',
-    },
-    {
-      key: 'codefather',
-      label: h(
-        'a',
-        {
-          href: 'https://www.codefather.cn',
-          target: '_blank',
-          rel: 'noopener noreferrer',
-        },
-        '编程导航',
-      ),
-      title: '编程导航',
-    },
-  ]
-
-  if (isAdmin.value) {
-    items.splice(1, 0, {
-      key: '/admin/userManage',
-      label: '用户管理',
-      title: '用户管理',
-    })
-  }
-
-  return items
+const router = useRouter()
+// 当前选中菜单
+const selectedKeys = ref<string[]>(['/'])
+// 监听路由变化，更新当前选中菜单
+router.afterEach((to, from, next) => {
+  selectedKeys.value = [to.path]
 })
 
-const displayName = computed(
-  () => loginUser.value?.userName || loginUser.value?.userAccount || '用户',
-)
+// 菜单配置项
+const originItems = [
+  {
+    key: '/',
+    icon: () => h(HomeOutlined),
+    label: '主页',
+    title: '主页',
+  },
+  {
+    key: '/admin/userManage',
+    label: '用户管理',
+    title: '用户管理',
+  },
+  {
+    key: '/admin/appManage',
+    label: '应用管理',
+    title: '应用管理',
+  },
+  {
+    key: 'others',
+    label: h('a', { href: 'https://www.codefather.cn', target: '_blank' }, '编程导航'),
+    title: '编程导航',
+  },
+]
 
-const avatarText = computed(() => displayName.value.slice(0, 1).toUpperCase())
-
-const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-  if (typeof key === 'string' && key.startsWith('/')) {
-    void router.push(key)
-  }
-}
-
-const handleLogin = () => {
-  void router.push('/user/login')
-}
-
-const handleUserMenuClick: MenuProps['onClick'] = async ({ key }) => {
-  if (key === 'admin') {
-    await router.push('/admin/userManage')
-    return
-  }
-
-  if (key !== 'logout') return
-
-  try {
-    const result = await loginUserStore.logout()
-
-    if (result.code !== 200 || !result.data) {
-      void message.error(result.message || '退出失败')
-      return
+// 过滤菜单项
+const filterMenus = (menus = [] as MenuProps['items']) => {
+  return menus?.filter((menu) => {
+    const menuKey = menu?.key as string
+    if (menuKey?.startsWith('/admin')) {
+      const loginUser = loginUserStore.loginUser
+      if (!loginUser || loginUser.userRole !== 'admin') {
+        return false
+      }
     }
+    return true
+  })
+}
 
-    void message.success('已退出登录')
-    await router.replace('/user/login')
-  } catch (error) {
-    void message.error(getRequestErrorMessage(error, '退出失败，请稍后重试'))
+// 展示在菜单的路由数组
+const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
+
+// 处理菜单点击
+const handleMenuClick: MenuProps['onClick'] = (e) => {
+  const key = e.key as string
+  selectedKeys.value = [key]
+  // 跳转到对应页面
+  if (key.startsWith('/')) {
+    router.push(key)
+  }
+}
+
+// 退出登录
+const doLogout = async () => {
+  const res = await userLogout()
+  if (res.data.code === 0) {
+    loginUserStore.setLoginUser({
+      userName: '未登录',
+    })
+    message.success('退出登录成功')
+    await router.push('/user/login')
+  } else {
+    message.error('退出登录失败，' + res.data.message)
   }
 }
 </script>
 
-<template>
-  <a-layout-header class="global-header">
-    <div class="header-inner">
-      <RouterLink class="brand" to="/" aria-label="返回首页">
-        <img class="brand-mark" src="/brand-mark.svg" alt="" />
-        <span class="brand-name">ZXY AI 零代码</span>
-      </RouterLink>
-
-      <a-menu
-        class="navigation"
-        mode="horizontal"
-        :items="menuItems"
-        :selected-keys="selectedKeys"
-        @click="handleMenuClick"
-      />
-
-      <a-dropdown v-if="isLoggedIn" placement="bottomRight">
-        <a-button class="user-trigger" type="text">
-          <a-avatar class="user-avatar" :src="loginUser?.userAvatar">
-            {{ avatarText }}
-          </a-avatar>
-          <span class="user-name">{{ displayName }}</span>
-        </a-button>
-        <template #overlay>
-          <a-menu @click="handleUserMenuClick">
-            <a-menu-item v-if="isAdmin" key="admin">用户管理</a-menu-item>
-            <a-menu-divider v-if="isAdmin" />
-            <a-menu-item key="logout">退出登录</a-menu-item>
-          </a-menu>
-        </template>
-      </a-dropdown>
-
-      <a-button v-else class="login-button" type="primary" @click="handleLogin">登录</a-button>
-    </div>
-  </a-layout-header>
-</template>
-
 <style scoped>
-.global-header {
-  height: 64px;
+.header {
+  background: #fff;
   padding: 0 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #dce3e1;
-  line-height: normal;
 }
 
-.header-inner {
-  display: grid;
-  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr) auto;
+.header-left {
+  display: flex;
   align-items: center;
-  width: 100%;
-  max-width: 1200px;
-  height: 100%;
-  margin: 0 auto;
-  gap: 20px;
+  gap: 12px;
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  color: #173a35;
+.logo {
+  height: 48px;
+  width: 48px;
 }
 
-.brand:hover {
-  color: #0f7567;
+.site-title {
+  margin: 0;
+  font-size: 18px;
+  color: #1890ff;
 }
 
-.brand-mark {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-}
-
-.brand-name {
-  margin-left: 10px;
-  overflow: hidden;
-  font-size: 17px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.navigation {
-  min-width: 0;
-  border-bottom: 0;
-  background: transparent;
-}
-
-.login-button {
-  min-width: 72px;
-  background: #0f7567;
-  border-color: #0f7567;
-}
-
-.login-button:hover,
-.login-button:focus {
-  background: #0b5e53 !important;
-  border-color: #0b5e53 !important;
-}
-
-.user-trigger {
-  display: inline-flex;
-  align-items: center;
-  max-width: 180px;
-  height: 42px;
-  padding: 4px 8px;
-  color: #1f2a27;
-}
-
-.user-avatar {
-  flex: 0 0 auto;
-  background: #0f7567;
-}
-
-.user-name {
-  min-width: 0;
-  margin-left: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 720px) {
-  .global-header {
-    height: auto;
-    padding: 10px 16px 0;
-  }
-
-  .header-inner {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 12px;
-  }
-
-  .navigation {
-    grid-column: 1 / -1;
-    order: 3;
-  }
-}
-
-@media (max-width: 420px) {
-  .brand-name {
-    font-size: 15px;
-  }
+.ant-menu-horizontal {
+  border-bottom: none !important;
 }
 </style>
