@@ -13,9 +13,9 @@ public abstract class CodeFileSaverTemplate<T> {
     public static final String FILE_SAVER_ROOT_SAVER = System.getProperty("user.dir") + "/tmp/code_output";
 
 
-    public void saveCode(T result) {
+    public void saveCode(T result, Long appId) {
         invalidInput(result);
-        saveFile(result, buildUniqueDir());
+        saveFile(result, buildUniqueDir(appId));
     }
 
     protected void invalidInput(T result) {
@@ -27,9 +27,9 @@ public abstract class CodeFileSaverTemplate<T> {
     protected abstract String getType();
 
 
-    protected String buildUniqueDir() {
+    protected String buildUniqueDir(Long appId) {
         String type = getType();
-        String uniqueDir = StrUtil.format("{}_{}", type, IdUtil.getSnowflakeNextId());
+        String uniqueDir = StrUtil.format("{}_{}", type, appId);
         log.info("Creating unique directory: {}", uniqueDir);
         String dirPath = FILE_SAVER_ROOT_SAVER + "/" + uniqueDir;
         FileUtil.mkdir(dirPath);

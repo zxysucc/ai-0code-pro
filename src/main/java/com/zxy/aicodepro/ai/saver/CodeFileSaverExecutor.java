@@ -11,13 +11,13 @@ public class CodeFileSaverExecutor {
 
     private static final CodeFileSaverTemplate<MultiFileCodeResult> multiFileCodeFileSaverTemplate = new MultiFileCodeFileSaverTemplate();
 
-    public static void executorSave(Object result, Ai0CodeGenTypeEnum type) {
+    public static void executorSave(Object result, Ai0CodeGenTypeEnum type, Long appId) {
         switch (type) {
             case HTML -> {
-                htmlCodeFileSaverTemplate.saveCode((HtmlCodeResult)result);
+                htmlCodeFileSaverTemplate.saveCode((HtmlCodeResult) result, appId);
             }
             case MULTI_FILE -> {
-                multiFileCodeFileSaverTemplate.saveCode((MultiFileCodeResult)result );
+                multiFileCodeFileSaverTemplate.saveCode((MultiFileCodeResult) result, appId);
             }
             default -> {
                 throw new IllegalArgumentException("Invalid type: " + type);

@@ -2,6 +2,7 @@ package com.zxy.aicodepro.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.zxy.aicodepro.ai.enums.Ai0CodeGenTypeEnum;
 import com.zxy.aicodepro.annotation.AuthCheck;
@@ -22,14 +23,19 @@ import com.zxy.aicodepro.service.AppService;
 import com.zxy.aicodepro.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static com.zxy.aicodepro.constant.UserConstant.ADMIN;
 
@@ -46,6 +52,22 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId, @RequestParam String userMsg, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(StrUtil.isBlank(userMsg), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
+        User loginUser = userService.getLoginUser(request);
+        Flux<String> stringFlux = appService.chatToGenCode(appId, userMsg, loginUser);
+        return stringFlux.map(chunk -> {
+            Map<String,String> map = Map.of("d",chunk);
+            String str = JSONUtil.toJsonStr(map);
+            return ServerSentEvent.<String>builder().data(str).build();
+        }).concatWith(Mono.just(
+                ServerSentEvent.<String>builder().event("end").data("").build()
+        ));
+    }
+
 
     @PostMapping("/add")
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest,

@@ -19,9 +19,9 @@ class Ai0CodeGeneratorFacadeTest {
 
     @Test
     void generatorAndSaveCode() {
-        ai0CodeGeneratorFacade.generatorAndSaveCode(Ai0CodeGenTypeEnum.HTML,"帮我生成一个登录页面，不超过20行代码");
+        ai0CodeGeneratorFacade.generatorAndSaveCode(Ai0CodeGenTypeEnum.HTML,"帮我生成一个登录页面，不超过20行代码",1L);
 
-        ai0CodeGeneratorFacade.generatorAndSaveCode(Ai0CodeGenTypeEnum.MULTI_FILE,"帮我生成一个注册页面，不超过20行代码");
+        ai0CodeGeneratorFacade.generatorAndSaveCode(Ai0CodeGenTypeEnum.MULTI_FILE,"帮我生成一个注册页面，不超过20行代码",1L);
 
     }
 
@@ -30,8 +30,8 @@ class Ai0CodeGeneratorFacadeTest {
     void generatorAndSaveCodeStream() {
         Flux<String> codeStream = ai0CodeGeneratorFacade.generatorAndSaveCodeStream(
                 Ai0CodeGenTypeEnum.HTML,
-                "帮我生成一个登录页面，不超过20行代码"
-        );
+                "帮我生成一个登录页面，不超过20行代码",
+                1L);
 
         List<String> result = codeStream.collectList().block();
         Assertions.assertNotNull(result);

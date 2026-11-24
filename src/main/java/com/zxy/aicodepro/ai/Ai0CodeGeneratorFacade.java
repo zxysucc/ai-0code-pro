@@ -1,6 +1,5 @@
 package com.zxy.aicodepro.ai;
 
-import com.zxy.aicodepro.ai.AiAssistant;
 import com.zxy.aicodepro.ai.enums.Ai0CodeGenTypeEnum;
 import com.zxy.aicodepro.ai.model.HtmlCodeResult;
 import com.zxy.aicodepro.ai.model.MultiFileCodeResult;
@@ -20,16 +19,16 @@ public class Ai0CodeGeneratorFacade {
     @Resource
     private AiAssistant aiAssistant;
 
-    public void generatorAndSaveCode(Ai0CodeGenTypeEnum type, String userMsg) {
+    public void generatorAndSaveCode(Ai0CodeGenTypeEnum type, String userMsg, Long appId) {
         switch (type) {
             case HTML -> {
                 HtmlCodeResult htmlCodeResult = aiAssistant.generateHtmlCode(userMsg);
 //                Ai0CodeSaver.saveHtmlCode(htmlCodeResult);
-                CodeFileSaverExecutor.executorSave(htmlCodeResult, Ai0CodeGenTypeEnum.HTML);
+                CodeFileSaverExecutor.executorSave(htmlCodeResult, Ai0CodeGenTypeEnum.HTML, appId);
             }
             case MULTI_FILE -> {
                 MultiFileCodeResult multiFileCodeResult = aiAssistant.generateMultiFileCode(userMsg);
-                CodeFileSaverExecutor.executorSave(multiFileCodeResult, Ai0CodeGenTypeEnum.MULTI_FILE);
+                CodeFileSaverExecutor.executorSave(multiFileCodeResult, Ai0CodeGenTypeEnum.MULTI_FILE, appId);
             }
             default -> {
                 log.error("Unknown code generation type: {}", type);
@@ -38,15 +37,16 @@ public class Ai0CodeGeneratorFacade {
         }
     }
 
-    public Flux<String> generatorAndSaveCodeStream(Ai0CodeGenTypeEnum type, String userMsg) {
+    public Flux<String> generatorAndSaveCodeStream(Ai0CodeGenTypeEnum type, String userMsg, Long appId) {
         return switch (type) {
             case HTML -> processCodeStream(
                     aiAssistant.generateHtmlCodeStream(userMsg),
-                    Ai0CodeGenTypeEnum.HTML
-            );
+                    Ai0CodeGenTypeEnum.HTML,
+                    appId);
             case MULTI_FILE -> processCodeStream(
                     aiAssistant.generateMultiFileCodeStream(userMsg),
-                    Ai0CodeGenTypeEnum.MULTI_FILE
+                    Ai0CodeGenTypeEnum.MULTI_FILE,
+                    appId
             );
             default -> {
                 log.error("Unknown code generation type: {}", type);
@@ -60,9 +60,10 @@ public class Ai0CodeGeneratorFacade {
      *
      * @param codeStream  代码流
      * @param codeGenType 代码生成类型
+     * @param appId
      * @return 流式响应
      */
-    private Flux<String> processCodeStream(Flux<String> codeStream, Ai0CodeGenTypeEnum codeGenType) {
+    private Flux<String> processCodeStream(Flux<String> codeStream, Ai0CodeGenTypeEnum codeGenType, Long appId) {
         StringBuilder codeBuilder = new StringBuilder();
         // 实时收集代码片段
         return codeStream.doOnNext(codeBuilder::append).doOnComplete(() -> {
@@ -75,7 +76,7 @@ public class Ai0CodeGeneratorFacade {
                 Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
                 log.info("parsedResult: {}", parsedResult);
                 // 使用执行器保存代码
-                CodeFileSaverExecutor.executorSave(parsedResult, codeGenType);
+                CodeFileSaverExecutor.executorSave(parsedResult, codeGenType, appId);
             } catch (Exception e) {
                 log.error("保存失败: {}", e.getMessage());
             }
